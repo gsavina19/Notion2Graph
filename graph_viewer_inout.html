@@ -1,0 +1,1355 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Notion Graph Viewer</title>
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&family=Space+Grotesk:wght@400;500;600&display=swap");
+
+    :root {
+      --bg-start: #f8f4ea;
+      --bg-end: #efe5d2;
+      --bg-glow-1: rgba(31, 133, 118, 0.16);
+      --bg-glow-2: rgba(214, 147, 78, 0.14);
+      --panel: #fff9ee;
+      --ink: #223138;
+      --ink-muted: #5d6a72;
+      --accent: #12736a;
+      --accent-soft: #d7efe8;
+      --line: #d6ccbb;
+      --shadow: rgba(18, 30, 33, 0.12);
+      --danger: #a43a2f;
+      --control-bg: #fffdf8;
+      --btn-hover-border: #b8b0a0;
+      --btn-primary-border: #1a7b71;
+      --btn-primary-start: #1b857a;
+      --btn-primary-end: #12645c;
+      --btn-primary-ink: #f7fffd;
+      --hud-bg: rgba(255, 249, 237, 0.88);
+      --hud-border: rgba(215, 205, 188, 0.95);
+      --panel-soft: #fffdf7;
+      --pill-border: #d4cbc0;
+      --pill-bg: #fbf5ea;
+      --pill-ink: #42545d;
+      --heading-ink: #32444d;
+      --item-border: #d8cdc0;
+      --item-bg: #fffbf4;
+      --item-hover-border: #1e7f74;
+      --item-hover-bg: #f1fbf8;
+      --node: #4d7c76;
+      --node-muted: #9cb6b1;
+      --edge: rgba(57, 93, 90, 0.24);
+      --edge-focus: rgba(18, 115, 106, 0.68);
+    }
+
+    body[data-theme="dark"] {
+      --bg-start: #0d151c;
+      --bg-end: #12202a;
+      --bg-glow-1: rgba(54, 152, 137, 0.19);
+      --bg-glow-2: rgba(180, 128, 74, 0.14);
+      --panel: #172530;
+      --ink: #deebf1;
+      --ink-muted: #9fb4c1;
+      --accent: #35b9a9;
+      --accent-soft: #243d48;
+      --line: #385164;
+      --shadow: rgba(4, 9, 12, 0.48);
+      --danger: #ff7e6e;
+      --control-bg: #1b2b36;
+      --btn-hover-border: #4f6d80;
+      --btn-primary-border: #2e9f94;
+      --btn-primary-start: #2a8f86;
+      --btn-primary-end: #1d5f58;
+      --btn-primary-ink: #e8fffb;
+      --hud-bg: rgba(16, 29, 39, 0.9);
+      --hud-border: rgba(73, 102, 121, 0.95);
+      --panel-soft: #1b2c37;
+      --pill-border: #455f72;
+      --pill-bg: #233844;
+      --pill-ink: #b9cdda;
+      --heading-ink: #c7d8e3;
+      --item-border: #415c6f;
+      --item-bg: #1f3340;
+      --item-hover-border: #51c6b8;
+      --item-hover-bg: #294552;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      height: 100%;
+      margin: 0;
+    }
+
+    body {
+      font-family: "Space Grotesk", "Segoe UI", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(160% 110% at 100% 0%, var(--bg-glow-1), transparent 45%),
+        radial-gradient(130% 100% at 0% 100%, var(--bg-glow-2), transparent 42%),
+        linear-gradient(140deg, var(--bg-start), var(--bg-end));
+      overflow: hidden;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      height: 100%;
+      padding: 16px;
+      gap: 12px;
+    }
+
+    .topbar {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: center;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 14px 16px;
+      box-shadow: 0 14px 30px -24px var(--shadow);
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-family: "Fraunces", Georgia, serif;
+      font-size: 1.35rem;
+      letter-spacing: 0.02em;
+      font-weight: 700;
+    }
+
+    .brand p {
+      margin: 3px 0 0;
+      color: var(--ink-muted);
+      font-size: 0.9rem;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: flex-end;
+      align-items: center;
+    }
+
+    .btn,
+    .input {
+      height: 36px;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      background: var(--control-bg);
+      color: var(--ink);
+      font: inherit;
+      padding: 0 12px;
+    }
+
+    .input {
+      min-width: 190px;
+    }
+
+    #searchResults {
+      min-width: 280px;
+      max-width: 520px;
+    }
+
+    .btn {
+      cursor: pointer;
+      transition: transform 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      border-color: var(--btn-hover-border);
+      box-shadow: 0 7px 14px -12px var(--shadow);
+    }
+
+    .btn.primary {
+      border-color: var(--btn-primary-border);
+      background: linear-gradient(160deg, var(--btn-primary-start), var(--btn-primary-end));
+      color: var(--btn-primary-ink);
+    }
+
+    .btn.ghost {
+      background: transparent;
+    }
+
+    .checkbox {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--ink-muted);
+      font-size: 0.87rem;
+      user-select: none;
+      white-space: nowrap;
+    }
+
+    .workspace {
+      min-height: 0;
+      display: grid;
+      gap: 12px;
+      grid-template-columns: minmax(420px, 1fr) 360px;
+    }
+
+    .graph-card,
+    .side-card {
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      box-shadow: 0 14px 30px -24px var(--shadow);
+      min-height: 0;
+    }
+
+    .graph-card {
+      position: relative;
+      overflow: hidden;
+    }
+
+    #graphCanvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      cursor: grab;
+    }
+
+    #graphCanvas.dragging {
+      cursor: grabbing;
+    }
+
+    .hud {
+      position: absolute;
+      left: 12px;
+      bottom: 12px;
+      background: var(--hud-bg);
+      border: 1px solid var(--hud-border);
+      border-radius: 10px;
+      padding: 7px 10px;
+      font-size: 0.8rem;
+      color: var(--ink-muted);
+      backdrop-filter: blur(4px);
+    }
+
+    .empty {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      color: var(--ink-muted);
+      padding: 22px;
+      line-height: 1.5;
+      pointer-events: none;
+    }
+
+    .side-card {
+      padding: 14px;
+      display: grid;
+      grid-template-rows: auto auto 1fr;
+      gap: 12px;
+    }
+
+    .meta {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px;
+      background: var(--panel-soft);
+    }
+
+    .meta-title {
+      margin: 0 0 6px;
+      font-family: "Fraunces", Georgia, serif;
+      font-size: 1.05rem;
+    }
+
+    .meta-path {
+      margin: 0;
+      font-size: 0.86rem;
+      color: var(--ink-muted);
+      line-height: 1.45;
+      word-break: break-word;
+    }
+
+    .meta-kpis {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+
+    .pill {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      border: 1px solid var(--pill-border);
+      background: var(--pill-bg);
+      color: var(--pill-ink);
+    }
+
+    .lists {
+      min-height: 0;
+      display: grid;
+      grid-template-rows: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .list-box {
+      min-height: 0;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--panel-soft);
+      display: grid;
+      grid-template-rows: auto 1fr;
+    }
+
+    .list-box h3 {
+      margin: 0;
+      padding: 10px 11px;
+      border-bottom: 1px solid var(--line);
+      font-size: 0.85rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      color: var(--heading-ink);
+      text-transform: uppercase;
+    }
+
+    .list-scroll {
+      margin: 0;
+      padding: 8px;
+      list-style: none;
+      overflow: auto;
+      display: grid;
+      gap: 6px;
+      align-content: start;
+    }
+
+    .link-item {
+      width: 100%;
+      text-align: left;
+      border: 1px solid var(--item-border);
+      border-radius: 9px;
+      background: var(--item-bg);
+      color: var(--ink);
+      font: inherit;
+      font-size: 0.82rem;
+      padding: 7px 8px;
+      cursor: pointer;
+      transition: border-color 0.12s ease, transform 0.12s ease, background-color 0.12s ease;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    .link-item:hover {
+      border-color: var(--item-hover-border);
+      background: var(--item-hover-bg);
+      transform: translateX(1px);
+    }
+
+    .placeholder {
+      margin: 0;
+      color: var(--ink-muted);
+      font-size: 0.84rem;
+      padding: 8px;
+    }
+
+    .error {
+      color: var(--danger);
+      margin: 0;
+      font-size: 0.82rem;
+      min-height: 1em;
+      justify-self: end;
+    }
+
+    @media (max-width: 1060px) {
+      .workspace {
+        grid-template-columns: 1fr;
+        grid-template-rows: 56vh 1fr;
+      }
+
+      .controls {
+        justify-content: flex-start;
+      }
+
+      .topbar {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <header class="topbar">
+      <div class="brand">
+        <h1>Notion Graph Viewer</h1>
+        <p>Carica <code>links_finali.json</code> e naviga la rete dei collegamenti interni.</p>
+      </div>
+
+      <div class="controls">
+        <button class="btn primary" id="loadButton" type="button">Carica JSON</button>
+        <input id="fileInput" type="file" accept=".json,application/json" hidden>
+        <input class="input" id="searchInput" type="search" placeholder="Cerca pagina">
+        <select class="input" id="searchResults" aria-label="Risultati ricerca" disabled>
+          <option value="">Risultati ricerca</option>
+        </select>
+        <button class="btn ghost" id="focusButton" type="button">Centra nodo</button>
+        <button class="btn ghost" id="resetButton" type="button">Reset vista</button>
+        <button class="btn ghost" id="themeButton" type="button">Tema Notte</button>
+        <label class="checkbox">
+          <input id="neighborsOnly" type="checkbox">
+          Solo vicini selezionato
+        </label>
+        <p class="error" id="statusText"></p>
+      </div>
+    </header>
+
+    <section class="workspace">
+      <div class="graph-card">
+        <canvas id="graphCanvas"></canvas>
+        <div class="empty" id="emptyState">
+          <div>
+            <strong>Ancora nessun grafo caricato.</strong><br>
+            Premi <em>Carica JSON</em> e seleziona il file prodotto da <code>notion_link_graph.py</code>.
+          </div>
+        </div>
+        <div class="hud" id="hud">Nodi: 0 | Archi: 0 | Zoom: 1.00x</div>
+      </div>
+
+      <aside class="side-card">
+        <section class="meta">
+          <h2 class="meta-title" id="nodeTitle">Nessun nodo selezionato</h2>
+          <p class="meta-path" id="nodePath">Seleziona un nodo nel grafo per vedere i collegamenti.</p>
+          <div class="meta-kpis">
+            <span class="pill" id="kpiOut">Uscita: 0</span>
+            <span class="pill" id="kpiIn">Ingresso: 0</span>
+            <span class="pill" id="kpiDegree">Totale: 0</span>
+          </div>
+        </section>
+
+        <section class="lists">
+          <article class="list-box">
+            <h3>Collegamenti in Uscita</h3>
+            <ul class="list-scroll" id="outgoingList"></ul>
+          </article>
+          <article class="list-box">
+            <h3>Collegamenti in Ingresso</h3>
+            <ul class="list-scroll" id="incomingList"></ul>
+          </article>
+        </section>
+      </aside>
+    </section>
+  </div>
+
+  <script>
+    const INTERNAL_LINK_KINDS = new Set(["internal", "internal_fuzzy"]);
+    const NOTION_ID_SUFFIX = /[ \-_]?[0-9a-f]{32}$/i;
+    const THEME_NODE_COLORS = {
+      light: {
+        edge: "rgba(57, 93, 90, 0.24)",
+        edgeFocus: "rgba(18, 115, 106, 0.68)",
+        edgeOutgoing: "rgba(17, 140, 124, 0.9)",
+        edgeIncoming: "rgba(217, 126, 53, 0.9)",
+        node: "#4d7c76",
+        nodeNear: "#4f948b",
+        nodeSelected: "#118073",
+        nodeHover: "#d78d48",
+        nodeStroke: "rgba(24, 29, 32, 0.66)",
+        label: "#1e2e34",
+      },
+      dark: {
+        edge: "rgba(126, 171, 184, 0.34)",
+        edgeFocus: "rgba(87, 218, 202, 0.82)",
+        edgeOutgoing: "rgba(90, 238, 218, 0.95)",
+        edgeIncoming: "rgba(255, 176, 98, 0.95)",
+        node: "#4f8290",
+        nodeNear: "#63a4ad",
+        nodeSelected: "#3dd0bc",
+        nodeHover: "#efab66",
+        nodeStroke: "rgba(10, 18, 25, 0.88)",
+        label: "#deebf1",
+      },
+    };
+
+    const COLORS = { ...THEME_NODE_COLORS.light };
+
+    const ui = {
+      canvas: document.getElementById("graphCanvas"),
+      emptyState: document.getElementById("emptyState"),
+      hud: document.getElementById("hud"),
+      loadButton: document.getElementById("loadButton"),
+      fileInput: document.getElementById("fileInput"),
+      resetButton: document.getElementById("resetButton"),
+      focusButton: document.getElementById("focusButton"),
+      themeButton: document.getElementById("themeButton"),
+      neighborsOnly: document.getElementById("neighborsOnly"),
+      searchInput: document.getElementById("searchInput"),
+      searchResults: document.getElementById("searchResults"),
+      statusText: document.getElementById("statusText"),
+      nodeTitle: document.getElementById("nodeTitle"),
+      nodePath: document.getElementById("nodePath"),
+      kpiOut: document.getElementById("kpiOut"),
+      kpiIn: document.getElementById("kpiIn"),
+      kpiDegree: document.getElementById("kpiDegree"),
+      outgoingList: document.getElementById("outgoingList"),
+      incomingList: document.getElementById("incomingList"),
+    };
+
+    const ctx = ui.canvas.getContext("2d");
+    const state = {
+      nodes: [],
+      edges: [],
+      nodeMap: new Map(),
+      pageTitles: {},
+      selectedId: null,
+      hoveredId: null,
+      zoom: 1,
+      panX: 0,
+      panY: 0,
+      draggingNodeId: null,
+      draggingCanvas: false,
+      pointerDown: false,
+      pointerX: 0,
+      pointerY: 0,
+      lastClientX: 0,
+      lastClientY: 0,
+      frame: 0,
+      graphLoaded: false,
+      neighborsOnly: false,
+      theme: "light",
+      maxDegree: 0,
+    };
+
+    function applyTheme(theme, persist = true) {
+      const nextTheme = theme === "dark" ? "dark" : "light";
+      state.theme = nextTheme;
+      document.body.dataset.theme = nextTheme;
+      Object.assign(COLORS, THEME_NODE_COLORS[nextTheme]);
+      ui.themeButton.textContent = nextTheme === "dark" ? "Tema Chiaro" : "Tema Notte";
+
+      if (persist) {
+        try {
+          localStorage.setItem("graph_theme", nextTheme);
+        } catch {
+          // Ignore storage errors and keep session theme in memory.
+        }
+      }
+      drawGraph();
+    }
+
+    function initialTheme() {
+      try {
+        const stored = localStorage.getItem("graph_theme");
+        if (stored === "dark" || stored === "light") {
+          return stored;
+        }
+      } catch {
+        // Ignore storage errors and fallback to light.
+      }
+      return "light";
+    }
+
+    function setStatus(message = "") {
+      ui.statusText.textContent = message;
+    }
+
+    function displayName(pagePath, titlesByPage = null) {
+      const normalized = String(pagePath || "").replace(/\\/g, "/").replace(/\/+/g, "/").trim();
+      if (titlesByPage && typeof titlesByPage === "object") {
+        const title = titlesByPage[normalized];
+        if (typeof title === "string" && title.trim()) {
+          return title.trim();
+        }
+      }
+      const tail = normalized.split("/").pop() || normalized;
+      const noExt = tail.replace(/\.(md|html?)$/i, "");
+      return noExt.replace(NOTION_ID_SUFFIX, "").trim() || normalized;
+    }
+
+    function normalizePageId(value) {
+      return String(value || "").replace(/\\/g, "/").replace(/\/+/g, "/").trim();
+    }
+
+    function normalizeSearchText(value) {
+      return String(value || "")
+        .toLowerCase()
+        .replace(/[\\/]+/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+
+    function findMatchingNodes(query) {
+      const normalized = normalizeSearchText(query);
+      if (!normalized) {
+        return [];
+      }
+      const matches = state.nodes.filter((node) =>
+        normalizeSearchText(node.label).includes(normalized)
+      );
+      matches.sort((a, b) => {
+        const byLabel = a.label.localeCompare(b.label, "it");
+        if (byLabel !== 0) {
+          return byLabel;
+        }
+        return a.id.localeCompare(b.id, "it");
+      });
+      return matches;
+    }
+
+    function renderSearchResults(matches, preferredId = "") {
+      const keepSelectedId = preferredId || ui.searchResults.value || "";
+      ui.searchResults.innerHTML = "";
+      const totalByLabel = new Map();
+      const seenByLabel = new Map();
+
+      const placeholder = document.createElement("option");
+      placeholder.value = "";
+      placeholder.textContent = matches.length > 0 ? `Risultati (${matches.length})` : "Nessun risultato";
+      ui.searchResults.appendChild(placeholder);
+
+      for (const node of matches) {
+        const label = node.label || "";
+        totalByLabel.set(label, (totalByLabel.get(label) || 0) + 1);
+      }
+
+      for (const node of matches) {
+        const option = document.createElement("option");
+        option.value = node.id;
+        const label = node.label || node.id;
+        const seen = (seenByLabel.get(label) || 0) + 1;
+        seenByLabel.set(label, seen);
+        const total = totalByLabel.get(label) || 1;
+        option.textContent = total > 1 ? `${label} (${seen})` : label;
+        ui.searchResults.appendChild(option);
+      }
+
+      ui.searchResults.disabled = matches.length === 0;
+
+      if (keepSelectedId && matches.some((node) => node.id === keepSelectedId)) {
+        ui.searchResults.value = keepSelectedId;
+      } else {
+        ui.searchResults.value = "";
+      }
+    }
+
+    function clearSearchResults() {
+      renderSearchResults([]);
+      ui.searchResults.innerHTML = "";
+      const placeholder = document.createElement("option");
+      placeholder.value = "";
+      placeholder.textContent = "Risultati ricerca";
+      ui.searchResults.appendChild(placeholder);
+      ui.searchResults.disabled = true;
+      ui.searchResults.value = "";
+    }
+
+    function buildGraphFromJson(data) {
+      const linksByPage = typeof data?.links_by_page === "object" && data?.links_by_page
+        ? data.links_by_page
+        : {};
+      const rawTitles = typeof data?.page_titles === "object" && data?.page_titles
+        ? data.page_titles
+        : {};
+      const titlesByPage = {};
+      for (const [page, title] of Object.entries(rawTitles)) {
+        if (typeof page !== "string" || typeof title !== "string") {
+          continue;
+        }
+        const normalizedPage = normalizePageId(page);
+        const cleanTitle = title.trim();
+        if (cleanTitle) {
+          titlesByPage[normalizedPage] = cleanTitle;
+        }
+      }
+      const rawInternalEdges = Array.isArray(data?.internal_edges) ? data.internal_edges : [];
+      const nodeIds = new Set(Object.keys(linksByPage).map(normalizePageId));
+      const edgeKeys = new Set();
+      const edges = [];
+
+      function pushEdge(sourceRaw, targetRaw) {
+        const source = normalizePageId(sourceRaw);
+        const target = normalizePageId(targetRaw);
+        if (!source || !target || source === target) {
+          return;
+        }
+        nodeIds.add(source);
+        nodeIds.add(target);
+        const key = `${source}=>${target}`;
+        if (edgeKeys.has(key)) {
+          return;
+        }
+        edgeKeys.add(key);
+        edges.push({ source, target });
+      }
+
+      if (rawInternalEdges.length > 0) {
+        for (const edge of rawInternalEdges) {
+          if (!edge || typeof edge !== "object") {
+            continue;
+          }
+          pushEdge(edge.source, edge.target);
+        }
+      } else {
+        for (const [page, links] of Object.entries(linksByPage)) {
+          if (!Array.isArray(links)) {
+            continue;
+          }
+          for (const link of links) {
+            if (!link || typeof link !== "object") {
+              continue;
+            }
+            const kind = String(link.kind || "");
+            if (kind && !INTERNAL_LINK_KINDS.has(kind)) {
+              continue;
+            }
+            pushEdge(page, link.target);
+          }
+        }
+      }
+
+      const orderedIds = Array.from(nodeIds).sort((a, b) => a.localeCompare(b, "it"));
+      const nodeMap = new Map();
+      const nodeCount = orderedIds.length;
+      const ringRadius = Math.max(220, Math.sqrt(nodeCount) * 26);
+      const goldenAngle = Math.PI * (3 - Math.sqrt(5));
+
+      orderedIds.forEach((id, i) => {
+        const angle = i * goldenAngle;
+        const dist = ringRadius * Math.sqrt((i + 1) / Math.max(1, nodeCount));
+        const jitter = (Math.random() - 0.5) * 18;
+        const x = Math.cos(angle) * dist + jitter;
+        const y = Math.sin(angle) * dist - jitter;
+
+        nodeMap.set(id, {
+          id,
+          label: displayName(id, titlesByPage),
+          x,
+          y,
+          vx: 0,
+          vy: 0,
+          outgoing: [],
+          incoming: [],
+          neighbors: new Set(),
+          degree: 0,
+        });
+      });
+
+      const mappedEdges = [];
+      for (const edge of edges) {
+        const sourceNode = nodeMap.get(edge.source);
+        const targetNode = nodeMap.get(edge.target);
+        if (!sourceNode || !targetNode) {
+          continue;
+        }
+        sourceNode.outgoing.push(targetNode.id);
+        targetNode.incoming.push(sourceNode.id);
+        sourceNode.neighbors.add(targetNode.id);
+        targetNode.neighbors.add(sourceNode.id);
+        mappedEdges.push({ source: sourceNode, target: targetNode });
+      }
+
+      for (const node of nodeMap.values()) {
+        node.outgoing.sort((a, b) => a.localeCompare(b, "it"));
+        node.incoming.sort((a, b) => a.localeCompare(b, "it"));
+        node.degree = node.outgoing.length + node.incoming.length;
+      }
+
+      return {
+        nodes: Array.from(nodeMap.values()),
+        edges: mappedEdges,
+        nodeMap,
+        titlesByPage,
+      };
+    }
+
+    function visibleSet() {
+      if (!state.neighborsOnly || !state.selectedId) {
+        return null;
+      }
+      const selected = state.nodeMap.get(state.selectedId);
+      if (!selected) {
+        return null;
+      }
+      const set = new Set([selected.id]);
+      for (const id of selected.neighbors) {
+        set.add(id);
+      }
+      return set;
+    }
+
+    function nodeRadius(node) {
+      const base = 4 + Math.min(11, Math.sqrt(node.degree + 1) * 1.6);
+      if (state.maxDegree <= 0) {
+        return base;
+      }
+      const ratio = node.degree / state.maxDegree;
+      const boost = Math.pow(ratio, 0.75) * 3.4;
+      return base + boost;
+    }
+
+    function isNodeHighlighted(nodeId) {
+      if (!state.selectedId) {
+        return false;
+      }
+      if (nodeId === state.selectedId) {
+        return true;
+      }
+      const selected = state.nodeMap.get(state.selectedId);
+      return Boolean(selected && selected.neighbors.has(nodeId));
+    }
+
+    function screenToWorld(x, y) {
+      return {
+        x: (x - state.panX) / state.zoom,
+        y: (y - state.panY) / state.zoom,
+      };
+    }
+
+    function worldToScreen(x, y) {
+      return {
+        x: x * state.zoom + state.panX,
+        y: y * state.zoom + state.panY,
+      };
+    }
+
+    function resizeCanvas() {
+      const ratio = window.devicePixelRatio || 1;
+      const rect = ui.canvas.getBoundingClientRect();
+      ui.canvas.width = Math.floor(rect.width * ratio);
+      ui.canvas.height = Math.floor(rect.height * ratio);
+      ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+      drawGraph();
+    }
+
+    function selectNode(nodeId, center = false) {
+      if (!state.nodeMap.has(nodeId)) {
+        return;
+      }
+      state.selectedId = nodeId;
+      if ([...ui.searchResults.options].some((option) => option.value === nodeId)) {
+        ui.searchResults.value = nodeId;
+      }
+      updateSidebar();
+      if (center) {
+        centerOnNode(nodeId);
+      }
+    }
+
+    function centerOnNode(nodeId) {
+      const node = state.nodeMap.get(nodeId);
+      if (!node) {
+        return;
+      }
+      const rect = ui.canvas.getBoundingClientRect();
+      state.panX = rect.width * 0.5 - node.x * state.zoom;
+      state.panY = rect.height * 0.5 - node.y * state.zoom;
+    }
+
+    function resetView() {
+      state.zoom = 1;
+      const rect = ui.canvas.getBoundingClientRect();
+      state.panX = rect.width * 0.5;
+      state.panY = rect.height * 0.5;
+    }
+
+    function fitGraph() {
+      if (state.nodes.length === 0) {
+        resetView();
+        return;
+      }
+      let minX = Infinity;
+      let minY = Infinity;
+      let maxX = -Infinity;
+      let maxY = -Infinity;
+      for (const node of state.nodes) {
+        if (node.x < minX) minX = node.x;
+        if (node.y < minY) minY = node.y;
+        if (node.x > maxX) maxX = node.x;
+        if (node.y > maxY) maxY = node.y;
+      }
+      const rect = ui.canvas.getBoundingClientRect();
+      const graphWidth = Math.max(120, maxX - minX);
+      const graphHeight = Math.max(120, maxY - minY);
+      const fitX = rect.width / graphWidth;
+      const fitY = rect.height / graphHeight;
+      state.zoom = Math.max(0.18, Math.min(2.8, Math.min(fitX, fitY) * 0.85));
+      state.panX = rect.width / 2 - ((minX + maxX) / 2) * state.zoom;
+      state.panY = rect.height / 2 - ((minY + maxY) / 2) * state.zoom;
+    }
+
+    function renderList(container, items) {
+      container.innerHTML = "";
+      if (!items || items.length === 0) {
+        const p = document.createElement("p");
+        p.className = "placeholder";
+        p.textContent = "Nessun collegamento.";
+        container.appendChild(p);
+        return;
+      }
+
+      const fragment = document.createDocumentFragment();
+      for (const targetId of items) {
+        const li = document.createElement("li");
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "link-item";
+        btn.title = targetId;
+        btn.textContent = displayName(targetId, state.pageTitles);
+        btn.addEventListener("click", () => {
+          selectNode(targetId, true);
+        });
+        li.appendChild(btn);
+        fragment.appendChild(li);
+      }
+      container.appendChild(fragment);
+    }
+
+    function updateSidebar() {
+      const node = state.selectedId ? state.nodeMap.get(state.selectedId) : null;
+      if (!node) {
+        ui.nodeTitle.textContent = "Nessun nodo selezionato";
+        ui.nodePath.textContent = "Seleziona un nodo nel grafo per vedere i collegamenti.";
+        ui.kpiOut.textContent = "Uscita: 0";
+        ui.kpiIn.textContent = "Ingresso: 0";
+        ui.kpiDegree.textContent = "Totale: 0";
+        renderList(ui.outgoingList, []);
+        renderList(ui.incomingList, []);
+        return;
+      }
+
+      ui.nodeTitle.textContent = node.label;
+      ui.nodePath.textContent = node.id;
+      ui.kpiOut.textContent = `Uscita: ${node.outgoing.length}`;
+      ui.kpiIn.textContent = `Ingresso: ${node.incoming.length}`;
+      ui.kpiDegree.textContent = `Totale: ${node.degree}`;
+      renderList(ui.outgoingList, node.outgoing);
+      renderList(ui.incomingList, node.incoming);
+    }
+
+    function pickNode(screenX, screenY) {
+      const world = screenToWorld(screenX, screenY);
+      let bestNode = null;
+      let bestDistance = Infinity;
+      for (const node of state.nodes) {
+        const radius = nodeRadius(node) + 4;
+        const dx = world.x - node.x;
+        const dy = world.y - node.y;
+        const distance = Math.hypot(dx, dy);
+        if (distance <= radius && distance < bestDistance) {
+          bestNode = node;
+          bestDistance = distance;
+        }
+      }
+      return bestNode;
+    }
+
+    function simulateGraph() {
+      const nodes = state.nodes;
+      const edges = state.edges;
+      const count = nodes.length;
+      if (count === 0) {
+        return;
+      }
+
+      const repulsion = Math.min(16500, 2000 + count * 8);
+      const springStrength = 0.0072;
+      const preferred = 68;
+      const centering = 0.00085;
+      const damping = 0.86;
+      const pairStep = count > 820 ? Math.ceil(count / 410) : 1;
+
+      for (let i = 0; i < count; i += 1) {
+        const a = nodes[i];
+        for (let j = i + 1; j < count; j += pairStep) {
+          const b = nodes[j];
+          const dx = b.x - a.x;
+          const dy = b.y - a.y;
+          const distSq = dx * dx + dy * dy + 24;
+          const dist = Math.sqrt(distSq);
+          const force = repulsion / distSq;
+          const fx = (force * dx) / dist;
+          const fy = (force * dy) / dist;
+          a.vx -= fx;
+          a.vy -= fy;
+          b.vx += fx;
+          b.vy += fy;
+        }
+      }
+
+      for (const edge of edges) {
+        const a = edge.source;
+        const b = edge.target;
+        const dx = b.x - a.x;
+        const dy = b.y - a.y;
+        const dist = Math.sqrt(dx * dx + dy * dy + 0.01);
+        const force = (dist - preferred) * springStrength;
+        const fx = (force * dx) / dist;
+        const fy = (force * dy) / dist;
+        a.vx += fx;
+        a.vy += fy;
+        b.vx -= fx;
+        b.vy -= fy;
+      }
+
+      for (const node of nodes) {
+        if (node.id === state.draggingNodeId) {
+          node.vx = 0;
+          node.vy = 0;
+          continue;
+        }
+        node.vx += -node.x * centering;
+        node.vy += -node.y * centering;
+        node.vx *= damping;
+        node.vy *= damping;
+        node.x += node.vx;
+        node.y += node.vy;
+      }
+    }
+
+    function drawGraph() {
+      const rect = ui.canvas.getBoundingClientRect();
+      ctx.clearRect(0, 0, rect.width, rect.height);
+
+      if (state.nodes.length === 0) {
+        ui.hud.textContent = "Nodi: 0 | Archi: 0 | Zoom: 1.00x";
+        return;
+      }
+
+      const visible = visibleSet();
+      const isVisible = (nodeId) => !visible || visible.has(nodeId);
+      const selected = state.selectedId;
+
+      ctx.save();
+      ctx.translate(state.panX, state.panY);
+      ctx.scale(state.zoom, state.zoom);
+
+      for (const edge of state.edges) {
+        if (!isVisible(edge.source.id) || !isVisible(edge.target.id)) {
+          continue;
+        }
+        let edgeColor = COLORS.edge;
+        let edgeWidth = 1;
+        if (selected) {
+          if (edge.source.id === selected) {
+            edgeColor = COLORS.edgeOutgoing;
+            edgeWidth = 2.15;
+          } else if (edge.target.id === selected) {
+            edgeColor = COLORS.edgeIncoming;
+            edgeWidth = 2.15;
+          }
+        }
+
+        ctx.beginPath();
+        ctx.moveTo(edge.source.x, edge.source.y);
+        ctx.lineTo(edge.target.x, edge.target.y);
+        ctx.strokeStyle = edgeColor;
+        ctx.lineWidth = edgeWidth;
+        ctx.stroke();
+      }
+
+      for (const node of state.nodes) {
+        if (!isVisible(node.id)) {
+          continue;
+        }
+        const radius = nodeRadius(node);
+        const isSelected = node.id === selected;
+        const isHovered = node.id === state.hoveredId;
+        const nearSelected = selected && isNodeHighlighted(node.id);
+
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, radius, 0, Math.PI * 2);
+        if (isSelected) {
+          ctx.fillStyle = COLORS.nodeSelected;
+        } else if (isHovered) {
+          ctx.fillStyle = COLORS.nodeHover;
+        } else if (nearSelected) {
+          ctx.fillStyle = COLORS.nodeNear;
+        } else {
+          ctx.fillStyle = COLORS.node;
+        }
+        ctx.fill();
+
+        if (isSelected || isHovered) {
+          ctx.lineWidth = 2;
+          ctx.strokeStyle = COLORS.nodeStroke;
+          ctx.stroke();
+        }
+
+        const showLabel = state.zoom > 1.42 || isSelected || isHovered || nearSelected;
+        if (showLabel) {
+          ctx.font = "600 12px 'Space Grotesk', sans-serif";
+          ctx.fillStyle = COLORS.label;
+          ctx.fillText(node.label, node.x + radius + 4, node.y - radius - 2);
+        }
+      }
+
+      ctx.restore();
+
+      ui.hud.textContent = `Nodi: ${state.nodes.length} | Archi: ${state.edges.length} | Zoom: ${state.zoom.toFixed(2)}x`;
+    }
+
+    function animate() {
+      state.frame += 1;
+      simulateGraph();
+      drawGraph();
+      requestAnimationFrame(animate);
+    }
+
+    function applyGraph(graphData) {
+      state.nodes = graphData.nodes;
+      state.edges = graphData.edges;
+      state.nodeMap = graphData.nodeMap;
+      state.pageTitles = graphData.titlesByPage || {};
+      state.selectedId = state.nodes.length > 0 ? state.nodes[0].id : null;
+      state.hoveredId = null;
+      state.draggingNodeId = null;
+      state.maxDegree = state.nodes.reduce((max, node) => Math.max(max, node.degree), 0);
+      state.graphLoaded = true;
+      ui.emptyState.style.display = "none";
+      ui.searchInput.value = "";
+      clearSearchResults();
+      fitGraph();
+      updateSidebar();
+      drawGraph();
+    }
+
+    function parseInputJson(rawText) {
+      let parsed;
+      try {
+        parsed = JSON.parse(rawText);
+      } catch (error) {
+        throw new Error("JSON non valido.");
+      }
+      const graph = buildGraphFromJson(parsed);
+      if (graph.nodes.length === 0) {
+        throw new Error("Nessun nodo interno trovato nel file.");
+      }
+      return graph;
+    }
+
+    function handleSearch() {
+      const query = normalizeSearchText(ui.searchInput.value);
+      if (!query) {
+        clearSearchResults();
+        setStatus("");
+        return;
+      }
+      const matches = findMatchingNodes(query);
+      const exact = matches.find((node) => (
+        normalizeSearchText(node.label) === query
+      ));
+      renderSearchResults(matches, exact ? exact.id : "");
+
+      if (matches.length === 0) {
+        setStatus("Pagina non trovata.");
+        return;
+      }
+
+      if (exact) {
+        setStatus("");
+        selectNode(exact.id, true);
+        return;
+      }
+
+      if (matches.length === 1) {
+        const onlyMatch = matches[0];
+        ui.searchResults.value = onlyMatch.id;
+        setStatus("");
+        selectNode(onlyMatch.id, true);
+        return;
+      }
+
+      if (ui.searchResults.value) {
+        setStatus("");
+        selectNode(ui.searchResults.value, true);
+        return;
+      }
+
+      setStatus(`Trovati ${matches.length} risultati: scegli dal menu a tendina.`);
+      ui.searchResults.focus();
+    }
+
+    function refreshSearchResultsFromInput() {
+      if (!state.graphLoaded) {
+        clearSearchResults();
+        return;
+      }
+      const query = normalizeSearchText(ui.searchInput.value);
+      if (!query) {
+        clearSearchResults();
+        setStatus("");
+        return;
+      }
+      const matches = findMatchingNodes(query);
+      renderSearchResults(matches);
+      if (matches.length === 0) {
+        setStatus("Pagina non trovata.");
+        return;
+      }
+      setStatus("");
+    }
+
+    function bindEvents() {
+      ui.loadButton.addEventListener("click", () => ui.fileInput.click());
+
+      ui.fileInput.addEventListener("change", async (event) => {
+        const file = event.target.files?.[0];
+        if (!file) {
+          return;
+        }
+        setStatus("");
+        try {
+          const content = await file.text();
+          const graph = parseInputJson(content);
+          applyGraph(graph);
+        } catch (error) {
+          setStatus(error.message || "Errore durante il caricamento.");
+        } finally {
+          ui.fileInput.value = "";
+        }
+      });
+
+      ui.neighborsOnly.addEventListener("change", () => {
+        state.neighborsOnly = ui.neighborsOnly.checked;
+        drawGraph();
+      });
+
+      ui.resetButton.addEventListener("click", () => {
+        fitGraph();
+      });
+
+      ui.focusButton.addEventListener("click", () => {
+        if (state.selectedId) {
+          centerOnNode(state.selectedId);
+        }
+      });
+
+      ui.themeButton.addEventListener("click", () => {
+        applyTheme(state.theme === "dark" ? "light" : "dark");
+      });
+
+      ui.searchInput.addEventListener("input", () => {
+        refreshSearchResultsFromInput();
+      });
+
+      ui.searchInput.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+          handleSearch();
+        }
+      });
+
+      ui.searchResults.addEventListener("change", () => {
+        if (!ui.searchResults.value) {
+          return;
+        }
+        setStatus("");
+        selectNode(ui.searchResults.value, true);
+      });
+
+      ui.canvas.addEventListener("wheel", (event) => {
+        if (!state.graphLoaded) {
+          return;
+        }
+        event.preventDefault();
+        const rect = ui.canvas.getBoundingClientRect();
+        const sx = event.clientX - rect.left;
+        const sy = event.clientY - rect.top;
+        const anchor = screenToWorld(sx, sy);
+        const factor = Math.exp(-event.deltaY * 0.0014);
+        const nextZoom = Math.max(0.12, Math.min(6.2, state.zoom * factor));
+        state.zoom = nextZoom;
+        const anchorAfter = worldToScreen(anchor.x, anchor.y);
+        state.panX += sx - anchorAfter.x;
+        state.panY += sy - anchorAfter.y;
+      }, { passive: false });
+
+      ui.canvas.addEventListener("pointerdown", (event) => {
+        if (!state.graphLoaded) {
+          return;
+        }
+        ui.canvas.setPointerCapture(event.pointerId);
+        state.pointerDown = true;
+        state.lastClientX = event.clientX;
+        state.lastClientY = event.clientY;
+        const rect = ui.canvas.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+        const hitNode = pickNode(x, y);
+        if (hitNode) {
+          state.draggingNodeId = hitNode.id;
+          selectNode(hitNode.id, false);
+        } else {
+          state.draggingCanvas = true;
+          ui.canvas.classList.add("dragging");
+        }
+      });
+
+      ui.canvas.addEventListener("pointermove", (event) => {
+        if (!state.graphLoaded) {
+          return;
+        }
+        const rect = ui.canvas.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+        const hovered = pickNode(x, y);
+        state.hoveredId = hovered ? hovered.id : null;
+
+        if (!state.pointerDown) {
+          return;
+        }
+
+        const deltaX = event.clientX - state.lastClientX;
+        const deltaY = event.clientY - state.lastClientY;
+        state.lastClientX = event.clientX;
+        state.lastClientY = event.clientY;
+
+        if (state.draggingNodeId) {
+          const node = state.nodeMap.get(state.draggingNodeId);
+          if (!node) {
+            return;
+          }
+          const world = screenToWorld(x, y);
+          node.x = world.x;
+          node.y = world.y;
+          node.vx = 0;
+          node.vy = 0;
+        } else if (state.draggingCanvas) {
+          state.panX += deltaX;
+          state.panY += deltaY;
+        }
+      });
+
+      function stopPointer(event) {
+        if (ui.canvas.hasPointerCapture(event.pointerId)) {
+          ui.canvas.releasePointerCapture(event.pointerId);
+        }
+        state.pointerDown = false;
+        state.draggingNodeId = null;
+        state.draggingCanvas = false;
+        ui.canvas.classList.remove("dragging");
+      }
+
+      ui.canvas.addEventListener("pointerup", stopPointer);
+      ui.canvas.addEventListener("pointercancel", stopPointer);
+      ui.canvas.addEventListener("pointerleave", () => {
+        if (!state.pointerDown) {
+          state.hoveredId = null;
+        }
+      });
+
+      window.addEventListener("resize", resizeCanvas);
+    }
+
+    bindEvents();
+    applyTheme(initialTheme(), false);
+    resizeCanvas();
+    resetView();
+    clearSearchResults();
+    updateSidebar();
+    animate();
+  </script>
+</body>
+</html>

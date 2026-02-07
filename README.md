@@ -1,4 +1,4 @@
-# Notion2Graph
+# Notion2Graph 🌐
 
 Dear stats lovers, I built something with zero practical value, but my brain has been demanding it for too long.
 

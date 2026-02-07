@@ -1,6 +1,6 @@
 # Notion2Graph 🌐
 
-Dear stats lovers, I built something with zero practical value, but my brain has been demanding it for too long.
+Dear stats lovers ❤️, I built something with zero practical value, but my brain has been demanding it for too long.
 
 I wanted a navigable link graph (Obsidian-style) starting from a Notion backup.
 
@@ -17,4 +17,4 @@ A few notes:
 
 Result: a real map of chaos, with a few useful insights for cleaning up and reorganizing.
 
-I’ve got 132 nodes and 230 edges. Let me know your metrics too.
+I’ve got 132 nodes and 230 edges. Let me know your metrics too 👻

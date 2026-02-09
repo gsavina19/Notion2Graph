@@ -18,3 +18,4 @@ A few notes:
 Result: a real map of chaos, with a few useful insights for cleaning up and reorganizing.
 
 I’ve got 132 nodes and 230 edges. Let me know your metrics too 👻
+![alt text](image.png)

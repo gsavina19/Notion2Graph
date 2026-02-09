@@ -907,6 +907,21 @@
       container.appendChild(fragment);
     }
 
+    function clearSelection() {
+      state.selectedId = null;
+      state.hoveredId = null;
+
+      // opzionale: se vuoi “staccare” anche il menu risultati
+      if (ui.searchResults) ui.searchResults.value = "";
+
+      // opzionale: se vuoi anche togliere eventuali messaggi
+      setStatus("");
+
+      updateSidebar();
+      drawGraph();
+    }
+
+
     function updateSidebar() {
       const node = state.selectedId ? state.nodeMap.get(state.selectedId) : null;
       if (!node) {
@@ -1341,6 +1356,17 @@
       });
 
       window.addEventListener("resize", resizeCanvas);
+      window.addEventListener("keydown", (event) => {
+      if (event.key !== "Escape") return;
+      if (!state.graphLoaded) return;
+
+      // Se c’è un nodo selezionato: ESC = deseleziona e torna alla vista “solo grafo”
+      if (state.selectedId) {
+        event.preventDefault();
+        clearSelection();
+        return;
+      }
+    });
     }
 
     bindEvents();

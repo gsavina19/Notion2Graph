@@ -3,7 +3,7 @@
 Build a per-page link map from an extracted Notion backup folder.
 
 Usage:
-    python 1-notion_link_graph.py /path/to/notion_export -o links.json
+    python notion_graph.py /path/to/notion_export
 """
 
 from __future__ import annotations
@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import html as html_lib
 import json
+import webbrowser
 import re
 import sys
 from collections import defaultdict
@@ -440,6 +441,23 @@ def main() -> int:
         f"kept {result['page_count']} connected pages."
     )
     print(f"Output written to: {output}")
+    viewer_name = "graph_viewer_inout.html"
+    viewer_candidates = [
+        Path.cwd() / viewer_name,
+        Path(__file__).resolve().parent / viewer_name,
+        output.parent / viewer_name,
+    ]
+    for viewer in viewer_candidates:
+        if viewer.exists():
+            webbrowser.open(viewer.resolve().as_uri())
+            print(f"Opened viewer: {viewer.resolve()}")
+            break
+    else:
+        print(
+            f"Viewer not found: {viewer_name} (searched: " +
+            ", ".join(str(p.resolve()) for p in viewer_candidates) + ")",
+            file=sys.stderr,
+        )
     return 0
 
 
